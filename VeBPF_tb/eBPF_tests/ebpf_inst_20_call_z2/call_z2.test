@@ -1,0 +1,8 @@
+-- asm
+mov r1, 8  # memory address for call
+mov r2, 0xff0f1f  # data for data writing for call
+call 0xff000002  # call the writing function of the call module
+call 0xff000003  # call the reading function of call module using address in r1
+exit
+-- result
+0xff0f1f

@@ -1,0 +1,46 @@
+name: VeBPF RTL CI (push only)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  vebpf-sim:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ✅ Install Icarus Verilog (required by cocotb)
+      - name: Install Icarus Verilog
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
+          activate-environment: vebpf_env
+          environment-file: VeBPF_tb/vebpf_env.yml
+          auto-activate-base: false
+
+      - name: Verify environment
+        shell: bash -l {0}
+        run: |
+          which iverilog
+          iverilog -V
+          python --version
+          python - << 'EOF'
+          import cocotb
+          print("cocotb version:", cocotb.__version__)
+          EOF
+
+      - name: Run VeBPF RTL tests (full instruction coverage)
+        shell: bash -l {0}
+        run: |
+          cd VeBPF_tb
+          make

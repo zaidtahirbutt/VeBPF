@@ -1,0 +1,43 @@
+-- asm
+# Get Ethertype from received packet
+mov32 r1, 12
+ldxh r4, [r1]
+be16 r4
+
+# Check if IP4
+jeq r4, 0x0800, +2
+# if pkt is not IP4 then save result as dont care and exit this prog
+# move r0, 0x01  
+	# HAD TO DO A LOT OF DEBUGGING CX OF THIS MOVEEEEE INST!! its MOV not MOVE!
+mov r0, 0x01	
+exit
+
+# not looking at ipv4 IHL since normally it is 5
+
+# read src ipaddr
+# 14 bytes of eth hdr + 12 bytes of ip hdr = 26 bytes till src ipaddr
+# need to read 4 bytes of src ipaddr
+mov32 r1, 26
+ldxw r4, [r1]
+be32 r4
+
+# check if src ipaddr is eq to 1.0.0.0 = 0x01 0x00 0x00 0x00 , since we used be32 commant so we dont have to flip
+# the bytes for L.E to B.E.. Just need to concatenate the bytes to a single word .. == 0x00000000
+# mac address of 0x04 0x00 0x00 0x00 0x00 0x00 when read using ldxdw r2 was loaded as 0x00 0x00 0x00 0x00 0x00 0x04
+# since eBPF is a L.E system since its LINUX based, thats why we have to do be16 or be32 as above to make it big 
+# -endian for
+# more human readable comps
+jeq r4, 0x01000000, +2
+
+# if pkt src ipaddr is not 1.0.0.0 = 0x01 0x00 0x00 0x00 = 0x01000000 save result as dont care and exit this prog
+mov r0, 0x01  
+exit
+# if pkt src ipaddr is 1.0.0.0 = 0x01 0x00 0x00 0x00 = 0x01000000 save result as 0x05 (means firewall rule4 got 
+# activated) and exit this prog
+mov r0, 0x05
+exit
+
+-- result
+0x0000000000000005
+# This test outputs 0x5 if the SRC IPADDR of rxpkt is 1:0:0:0 firewall rule4
+
